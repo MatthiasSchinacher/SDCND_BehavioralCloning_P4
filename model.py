@@ -4,6 +4,7 @@ import numpy as np
 import cv2
 import csv
 
+# we expect at least a training-set name, optionally the number of epochs
 if len(sys.argv) < 2:
     print('usage:')
     print('   python {} <training-set-name> [epochs]'.format(sys.argv[0]))
@@ -11,10 +12,12 @@ if len(sys.argv) < 2:
 
 tsname = str(sys.argv[1])
 
-epochs = 5
+epochs = 5 # small default for testing
 if len(sys.argv) > 2:
     epochs = int(sys.argv[2])
 
+# read both the files that were meant for training and validation
+# => unlike initially planned, we do the split later
 lines = []
 fn = '{}_train.csv'.format(tsname)
 with open(fn) as csvfile:
@@ -41,6 +44,7 @@ for l in lines:
     angle = float(l[3])
     langle.append(angle)
 
+    # flip the image to double the data
     fimg = cv2.flip(img,flipCode=1)
     limg.append(fimg)
     fangle = -1.0 * angle
@@ -61,9 +65,7 @@ del langle
 from keras.models import Sequential
 from keras.layers import Dense, Flatten, Lambda, Conv2D, MaxPooling2D, Dropout, Cropping2D
 
-#keras.layers.Conv2D(filters, kernel_size, strides=(1, 1), padding='valid', data_format=None, dilation_rate=(1, 1), activation=None, use_bias=True, kernel_initializer='glorot_uniform', bias_initializer='zeros', kernel_regularizer=None, bias_regularizer=None, activity_regularizer=None, kernel_constraint=None, bias_constraint=None)
-#keras.layers.Dense(units, activation=None, use_bias=True, kernel_initializer='glorot_uniform', bias_initializer='zeros', kernel_regularizer=None, bias_regularizer=None, activity_regularizer=None, kernel_constraint=None, bias_constraint=None)
-
+# the actual model- building is here
 model = Sequential()
 model.add(Cropping2D(cropping=((30, 10), (0, 0)),input_shape=(160,320,3)))
 model.add(Lambda(lambda x: (x / 255.0) - 0.5))          # -> 120x320x3
@@ -73,10 +75,10 @@ model.add(Conv2D(12,3,activation='relu'))               # -> 17x51x12
 model.add(MaxPooling2D(pool_size=(2,2)))                # -> 8x25x12
 model.add(Flatten(input_shape=(12,25,12)))              # -> 2400
 model.add(Dense(711,activation='relu'))                 # -> 711
-model.add(Dropout(0.5))
+model.add(Dropout(0.5))                                 # -> 711
 model.add(Dense(111,activation='relu'))                 # -> 111
-model.add(Dropout(0.5))
-model.add(Dense(1))
+model.add(Dropout(0.5))                                 # -> 111
+model.add(Dense(1))                                     # -> 1      Tada!!!
 print(model.summary())
 #quit();
 
